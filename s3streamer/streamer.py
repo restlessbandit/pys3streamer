@@ -10,17 +10,22 @@ class S3Streamer(object):
         if not len(key_names):
             raise ValueError("At least one key name must be provided")
         self._key_strs = key_names
+        s3_connection = kwargs.pop('s3_connection', None)
+        key_is_prefix = kwargs.pop('key_is_prefix', False)
+        if kwargs.keys():
+            raise TypeError("unexpected keyword argument %s" % list(kwargs.keys())[0])
 
-        self._conn = kwargs.get('s3_connection') or S3Connection()
+        self._conn = s3_connection or S3Connection()
         self._bucket_name = bucket_name
         self._bucket = None
         self._current_key_str = iter(self._key_strs)
-        self._key_is_prefix = kwargs.get('key_is_prefix', False)
+        self._key_is_prefix = key_is_prefix
         self._tmp_iter = None
         self._cur_key = None
         self._readline_buff = None
         self._key_names_accessed = []
         self._read_buffer_size = 1*1024*1024
+        self._hit_eof = False
 
     def read(size=0):
         return self._filekey.read(size)
@@ -30,7 +35,7 @@ class S3Streamer(object):
         if not self._bucket:
             self._bucket = self._conn.get_bucket(self._bucket_name)
         return self._bucket
-    
+
     def __repr__(self):
         return "<%s: %s>"%(self.__class__.__name__, self._bucket_name)
 
@@ -41,7 +46,7 @@ class S3Streamer(object):
     @property
     def keys_matched(self):
         pass
-    
+
     @property
     def _next_key(self):
         if self._key_is_prefix:
@@ -68,8 +73,9 @@ class S3Streamer(object):
 
     def _select_next_key(self):
         self._cur_key = self._next_key
+        self._hit_eof = False
         return self._cur_key
-        
+
     @property
     def _current_key(self):
         if not self._cur_key:
@@ -82,9 +88,17 @@ class S3Streamer(object):
 
         d = self._current_key.read(size)
         print("_read gives", d.__repr__())
+        if len(d) is not size and not self._hit_eof:
+            d2 = self._current_key.read(size-len(d))
+            if not d2: #HIT EOF
+                self._hit_eof = True
+                d += '\n'
+                return d, True
+            d += d2
+
         if d:
             return d, False
-        
+
         if not self._select_next_key():
             return '', True
         return self._read(size)[0], True
@@ -97,4 +111,3 @@ class S3Streamer(object):
     def readline(self):
         self._readline_buff, hit_eof = self._read(self._read_buffer_size, ignore_buff=True)
         return self._readline_buff.splitlines()
-
