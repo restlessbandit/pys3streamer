@@ -22,16 +22,25 @@ def test_incorrect_parameters(s3fakeconn):
                    incorrect_key="Test")
 
 
-def test_single_key(s3fakeconn, keydata):
+def test_single_key(s3fakeconn, keydatawithnewline):
     stream = S3Streamer('bucket', 'stuff', s3_connection=s3fakeconn)
     d_cat = cat_read(stream)
-    assert d_cat == (keydata[0]+"\n")
+    print("DCAT", d_cat.__repr__())
+    print("DATA", keydatawithnewline[0].__repr__())
+    assert d_cat == keydatawithnewline[0]
 
 
-def test_prefix(s3fakeconn, keydata):
+def test_prefix(s3fakeconn, keydatacated):
     stream = S3Streamer('bucket', 'stuff', s3_connection=s3fakeconn, key_is_prefix=True)
     d_cat = cat_read(stream)
-    keys = "\n".join(keydata+[''])
     print("DCAT", d_cat.__repr__())
-    print("KEYS", keys.__repr__())
-    assert d_cat == keys
+    print("DATA", keydatacated.__repr__())
+    assert d_cat == keydatacated
+
+def test_readline(s3fakeconn, keydatacatedsplitonnewline):
+    stream = S3Streamer('bucket', 'stuff', s3_connection=s3fakeconn, key_is_prefix=True)
+    for l in keydatacatedsplitonnewline:
+        d = stream.readline()
+        print("READLINE:", d.__repr__())
+        print("CORRECTL:", l.__repr__())
+        assert d == l

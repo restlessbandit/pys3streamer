@@ -22,7 +22,7 @@ class S3Streamer(object):
         self._key_is_prefix = key_is_prefix
         self._tmp_iter = None
         self._cur_key = None
-        self._readline_buff = None
+        self._readline_buff = ''
         self._key_names_accessed = []
         self._read_buffer_size = 1*1024*1024
         self._hit_eof = False
@@ -42,10 +42,6 @@ class S3Streamer(object):
     @property
     def keys_read(self):
         return list(self._key_names_accessed)
-
-    @property
-    def keys_matched(self):
-        pass
 
     @property
     def _next_key(self):
@@ -82,32 +78,31 @@ class S3Streamer(object):
             self._select_next_key()
         return self._cur_key
 
-    def _read(self, size, ignore_buff=False):
+    def read(self, size):
         if size is 0:
             raise ValueError("size 0 unsupported because it is dangerous.")
 
         d = self._current_key.read(size)
-        print("_read gives", d.__repr__())
         if len(d) is not size and not self._hit_eof:
             d2 = self._current_key.read(size-len(d))
             if not d2: #HIT EOF
                 self._hit_eof = True
                 d += '\n'
-                return d, True
+                return d
             d += d2
 
         if d:
-            return d, False
+            return d
 
         if not self._select_next_key():
-            return '', True
-        return self._read(size)[0], True
-
-    def read(self, size):
-        d = self._read(size)
-        print("read got from _read", d.__repr__())
-        return d[0]
+            return ''
+        return self.read(size)
 
     def readline(self):
-        self._readline_buff, hit_eof = self._read(self._read_buffer_size, ignore_buff=True)
-        return self._readline_buff.splitlines()
+        while '\n' not in self._readline_buff:
+            d = self.read(self._read_buffer_size)
+            if not d:
+                raise Exception("This should never happen since read guarantees newlines!")
+            self._readline_buff += d
+        line, _, self._readline_buff = self._readline_buff.partition('\n')
+        return line+"\n"

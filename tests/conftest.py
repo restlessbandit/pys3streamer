@@ -4,9 +4,13 @@ import pytest
 data = [
     "People who are really serious about software should make their own hardware. -- Alan Kay",
     "Hey, I'm a good software engineer, but I'm not exactly known for my fashion sense. White socks and sandals don't translate to 'good design sense'. -- Linux Torvalds",
+    "When in doubt, use brute force. -- Ken Thompson\nOne of my most productive days was throwing away 1,000 lines of code. -- Ken Thompson",
     "Measuring programming progress by lines of code is like measuring aircraft building progress by weight. -- Bill Gates",
     "Object-oriented design is the roman numerals of computing. -- Rob Pike"
 ]
+data_cated = "\n".join(data+[''])
+data_with_trailing_newline = [d+'\n' for d in data]
+data_cated_split_on_newline = [d+'\n' for d in data_cated.split('\n')[:-1]]
 
 class S3KeyFaker(object):
     def __init__(self, keydata, name):
@@ -15,10 +19,10 @@ class S3KeyFaker(object):
         self._data_offset = 0
 
     def read(self, count):
-        print("Reading from key", self._name) 
+        #print("Reading from key", self._name) 
         d = self._keydata[self._data_offset:count] if self._data_offset<len(self._keydata) else ''
         self._data_offset += count
-        print("returning", d.__repr__())
+        #print("returning", d.__repr__())
         return d
 
     @property
@@ -53,3 +57,12 @@ def s3fakeconn():
 @pytest.fixture(scope="module")
 def keydata():
     return data
+@pytest.fixture(scope="module")
+def keydatacated():
+    return data_cated
+@pytest.fixture(scope="module")
+def keydatawithnewline():
+    return data_with_trailing_newline
+@pytest.fixture(scope="module")
+def keydatacatedsplitonnewline():
+    return data_cated_split_on_newline
