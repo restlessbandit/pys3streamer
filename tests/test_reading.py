@@ -44,3 +44,10 @@ def test_readline(s3fakeconn, keydatacatedsplitonnewline):
         print("READLINE:", d.__repr__())
         print("CORRECTL:", l.__repr__())
         assert d == l
+
+def test_iter(s3fakeconn, keydatacatedsplitonnewline):
+    stream = S3Streamer('bucket', 'stuff', s3_connection=s3fakeconn, key_is_prefix=True)
+    d = list(stream)
+    print("READLINE:", d.__repr__())
+    print("CORRECTL:", keydatacatedsplitonnewline.__repr__())
+    assert d == keydatacatedsplitonnewline

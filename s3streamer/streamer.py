@@ -7,6 +7,14 @@ class S3Streamer(object):
 
     #def __init__(self, bucket_name, *key_names, s3_connection=None, key_is_prefix=False):
     def __init__(self, bucket_name, *key_names, **kwargs):
+        """Create a new S3Streamer. Automatically creates a Boto S3Connection if one is not provided.
+
+        Args:
+            bucket_name: String name of the Amazon S3 bucket. All keys read will be read from this bucket.
+            key_names: List of key names to cat together and read, or list of key prefixes.
+            s3_connection (optional): A Boto S3Connection object. One will be created from your env settings if not provided
+            key_is_prefix (optional): Boolean determining if key_names should be interpreted as key prefixes (True means interpret as key_prefix). Note no deduplication is done for keys when multiple key prefixes are used. It is possible to get the same key multiple times if it matches multiple prefixes.
+        """
         if not len(key_names):
             raise ValueError("At least one key name must be provided")
         self._key_strs = key_names
@@ -27,11 +35,9 @@ class S3Streamer(object):
         self._read_buffer_size = 1*1024*1024
         self._hit_eof = False
 
-    def read(size=0):
-        return self._filekey.read(size)
-
     @property
     def bucket(self):
+        """Get the Amazon S3 boto bucket object."""
         if not self._bucket:
             self._bucket = self._conn.get_bucket(self._bucket_name)
         return self._bucket
@@ -41,6 +47,7 @@ class S3Streamer(object):
 
     @property
     def keys_read(self):
+        """List the Amazon S3 keys that have been read so far"""
         return list(self._key_names_accessed)
 
     @property
@@ -102,7 +109,17 @@ class S3Streamer(object):
         while '\n' not in self._readline_buff:
             d = self.read(self._read_buffer_size)
             if not d:
-                raise Exception("This should never happen since read guarantees newlines!")
+                return ''
             self._readline_buff += d
         line, _, self._readline_buff = self._readline_buff.partition('\n')
         return line+"\n"
+
+    def __iter__(self):
+        while True:
+            d = self.readline()
+            if not d:
+                break
+            yield d
+
+    def close(self):
+        pass
