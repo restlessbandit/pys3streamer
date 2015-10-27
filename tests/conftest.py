@@ -23,7 +23,7 @@ class S3KeyFaker(object):
         d = self._keydata[self._data_offset:count] if self._data_offset<len(self._keydata) else ''
         self._data_offset += count
         #print("returning", d.__repr__())
-        return d
+        return d.encode('utf8')
 
     @property
     def name(self):

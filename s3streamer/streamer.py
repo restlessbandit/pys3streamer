@@ -30,7 +30,7 @@ class S3Streamer(object):
         self._key_is_prefix = key_is_prefix
         self._tmp_iter = None
         self._cur_key = None
-        self._readline_buff = ''
+        self._readline_buff = b''
         self._key_names_accessed = []
         self._read_buffer_size = 1*1024*1024
         self._hit_eof = False
@@ -94,7 +94,7 @@ class S3Streamer(object):
             d2 = self._current_key.read(size-len(d))
             if not d2: #HIT EOF
                 self._hit_eof = True
-                d += '\n'
+                d += b'\n'
                 return d
             d += d2
 
@@ -102,17 +102,17 @@ class S3Streamer(object):
             return d
 
         if not self._select_next_key():
-            return ''
+            return b''
         return self.read(size)
 
     def readline(self):
-        while '\n' not in self._readline_buff:
+        while b'\n' not in self._readline_buff:
             d = self.read(self._read_buffer_size)
             if not d:
-                return ''
+                return b''
             self._readline_buff += d
-        line, _, self._readline_buff = self._readline_buff.partition('\n')
-        return line+"\n"
+        line, _, self._readline_buff = self._readline_buff.partition(b'\n')
+        return line+b'\n'
 
     def __iter__(self):
         while True:
