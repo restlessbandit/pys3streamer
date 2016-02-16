@@ -89,8 +89,13 @@ class S3Streamer(object):
         if size is 0:
             raise ValueError("size 0 unsupported because it is dangerous.")
 
+        if self._hit_eof is True:
+            nk = self._select_next_key()
+            if nk is None:
+                return b''
+
         d = self._current_key.read(size)
-        if len(d) is not size and not self._hit_eof:
+        if len(d) != size and self._hit_eof is False:
             d2 = self._current_key.read(size-len(d))
             if not d2: #HIT EOF
                 self._hit_eof = True
